@@ -82,75 +82,121 @@ class Trainer(object):
         predict = predict * predict
         # target全为0/1，无需平方
         loss = 2 * inter.sum(1) / (target.sum(1) + predict.sum(1))
-        return -loss.sum() / n + 1
+        return -loss.sum() / n
 
-    def train(self, n_epoch, begin=0):
-        self.model.train()
+    def Iterate(self, epoch, data_loader: DataLoader, train, tag: str):
+        tot_loss, tot_dice = 0, 0
+        for i, data in enumerate(self.train_loader):
+            target = data[0].unsqueeze(1).cuda()  # (batch, 1, x, y)
+            in_data = data[1].unsqueeze(1).cuda()  # (batch, 1, x, y)
+            foreground = torch.zeros_like(in_data).cuda()
+            background = torch.zeros_like(in_data).cuda()
+            with torch.no_grad():
+                tmp = torch.zeros_like(target[0, 0])
+                for batch in range(in_data.shape[0]):
+                    res, x, y = self.get_click(target[batch, 0], tmp)
+                    if res == -1:
+                        background[batch, 0, x, y] = 1.0
+                    elif res == 1:
+                        foreground[batch, 0, x, y] = 1.0
+                    else:
+                        raise Exception('Empty Label!')
 
-        for epoch in range(n_epoch):
-            out_data = None
-            in_data = None
-            upd = 0
-            for i, data in enumerate(self.train_loader):
-                target = data[0].unsqueeze(1).cuda()  # (batch, 1, x, y)
-                in_data = data[1].unsqueeze(1).cuda()  # (batch, 1, x, y)
-                foreground = torch.zeros_like(in_data).cuda()
-                background = torch.zeros_like(in_data).cuda()
-                with torch.no_grad():
-                    tmp = torch.zeros_like(target[0, 0])
+                for it in range(1, self.max_iter):
+                    prob = it / self.max_iter * 0.9
+                    if random.random() < prob:  # 结束迭代
+                        break
+
+                    fore = self.gauss_filter(foreground)
+                    back = self.gauss_filter(background)
+                    out_data = self.model(
+                        torch.cat((in_data, self.gauss_filter(fore), self.gauss_filter(back)), dim=1)
+                    )  # (batch, 1, x, y)
+
                     for batch in range(in_data.shape[0]):
-                        res, x, y = self.get_click(target[batch, 0], tmp)
+                        res, x, y = self.get_click(target[batch, 0], out_data[batch, 0])
                         if res == -1:
                             background[batch, 0, x, y] = 1.0
                         elif res == 1:
                             foreground[batch, 0, x, y] = 1.0
-                        else:
-                            raise Exception('Empty Label!')
+                        # else: already matched
 
-                    for it in range(1, self.max_iter):
-                        prob = it / self.max_iter * 0.9
-                        if random.random() < prob:  # 结束迭代
-                            break
-                        out_data = self.model(
-                            torch.cat((in_data, self.gauss_filter(foreground), self.gauss_filter(background)), dim=1)
-                        )  # (batch, 1, x, y)
+            fore = self.gauss_filter(foreground)
+            back = self.gauss_filter(background)
+            out_data = self.model(
+                torch.cat((in_data, fore, back), dim=1)
+            )
 
-                        for batch in range(in_data.shape[0]):
-                            res, x, y = self.get_click(target[batch, 0], out_data[batch, 0])
-                            if res == -1:
-                                background[batch, 0, x, y] = 1.0
-                            elif res == 1:
-                                foreground[batch, 0, x, y] = 1.0
-                            # else: already matched
+            # Train or Evaluate
+            if not train:
+                with torch.no_grad():
+                    loss = self.loss(target, out_data)
+                    tot_loss += loss.item()
+                    ans = (out_data > 0.5).to(dtype=torch.float32)
+                    dice = self.loss(target, ans)
+                    tot_dice += dice.item()
 
+            else:
                 # 利用当前的foreground和background训练
-
-                out_data = self.model(
-                    torch.cat((in_data, self.gauss_filter(foreground), self.gauss_filter(background)), dim=1)
-                )
                 loss = self.loss(target, out_data)
-                self.writer.add_scalar('train/train_loss', loss.item(), self.i_acc+i+1)
+                tot_loss += loss.item()
                 loss.backward()
-                upd += 1
-                if upd == 8:
-                    self.optimizer.step()
-                    upd = 0
-                    self.optimizer.zero_grad()
 
+                self.optimizer.step()
+                self.optimizer.zero_grad()
+
+                self.writer.add_scalar('train/train_loss', loss.item(), self.i_acc + i + 1)
 
                 with torch.no_grad():
                     ans = (out_data > 0.5).to(dtype=torch.float32)
                     dice = self.loss(target, ans)
+                    tot_dice += dice.item()
                     self.writer.add_scalar('train/train_dice', dice.item(), self.i_acc + i + 1)
                     log_str = 'epoch {0:d}, step {1:d}: train_loss {2:.3f}; train_dice {3:.3f}'.format(
-                        epoch+1, i+1, loss.item(), dice.item()
+                        epoch + 1, i + 1, loss.item(), dice.item()
                     )
                     print(log_str)
 
-            if upd > 0:
-                self.optimizer.step()
-                upd = 0
-                self.optimizer.zero_grad()
+            # Draw prediction
+            with torch.no_grad():
+                fore = self.mix_conv(fore)
+                back = self.mix_conv(back)
+                for batch in range(data[1].shape[0]):
+                    if train and (data[2][batch] != 'img0001' or data[3][batch].item() != 120):
+                        continue
+
+                    if not train and (data[2][batch] != 'img0002' or data[3][batch].item() != 120):
+                        continue
+
+                    image = (in_data[batch] * 255).to(torch.uint8).cpu().numpy()
+                    area = (ans[batch] * 255).to(torch.uint8).cpu().numpy()
+                    fore_img = (fore[batch] * 255).to(torch.uint8).cpu().numpy()
+                    back_img = (back[batch] * 255).to(torch.uint8).cpu().numpy()
+                    zeros = np.zeros_like(image)
+                    image = np.concatenate((image, image, image))
+                    area = np.concatenate((area, zeros, zeros))
+                    fore_img = np.concatenate((zeros, fore_img, zeros))
+                    back_img = np.concatenate((zeros, zeros, back_img))
+                    tmp = cv.addWeighted(area, 0.7, cv.add(fore_img, back_img), 1.0, 0)
+                    image = cv.addWeighted(image, 0.7, tmp, 0.4, 0.0)
+                    self.writer.add_image(
+                        '{}-imgs-'.format(tag) + data[2][batch] + '-' + str(data[3][batch].item()) + '/' + str(
+                            data[4][batch].item()),
+                        image, global_step=epoch, dataformats='CHW'
+                    )
+        tot_dice /= len(data_loader)
+        tot_loss /= len(data_loader)
+        return tot_loss, tot_dice
+
+    def train(self, n_epoch, begin=0):
+        self.model.train()
+
+        for epoch in range(begin, n_epoch):
+            out_data = None
+            in_data = None
+
+            self.Iterate(epoch, self.train_loader, True, 'train')
+
             self.i_acc += len(self.train_loader)
 
             # evaluation
@@ -171,70 +217,10 @@ class Trainer(object):
         tot_dice = 0.
         tot_data = 0
 
-        for i, data in enumerate(self.val_loader):
-            target = data[0].unsqueeze(1).cuda()  # (batch, 1, x, y)
-            in_data = data[1].unsqueeze(1).cuda()  # (batch, 1, x, y)
-            foreground = torch.zeros_like(in_data).cuda()
-            background = torch.zeros_like(in_data).cuda()
-            tot_data += in_data.shape[0]
-            with torch.no_grad():
-                tmp = torch.zeros_like(target[0, 0])
-                for batch in range(in_data.shape[0]):
-                    res, x, y = self.get_click(target[batch, 0], tmp)
-                    if res == -1:
-                        background[batch, 0, x, y] = 1.0
-                    elif res == 1:
-                        foreground[batch, 0, x, y] = 1.0
-                    else:
-                        raise Exception('Empty Label!')
+        loss, dice = self.Iterate(epoch, self.val_loader, False, 'val')
 
-                for it in range(1, self.max_iter):
-                    prob = it / self.max_iter * 0.9
-                    if random.random() < prob:  # 结束迭代
-                        break
-                    out_data = self.model(
-                        torch.cat((in_data, self.gauss_filter(foreground), self.gauss_filter(background)), dim=1)
-                    )  # (batch, 1, x, y)
-
-                    for batch in range(in_data.shape[0]):
-                        res, x, y = self.get_click(target[batch, 0], out_data[batch, 0])
-                        if res == -1:
-                            background[batch, 0, x, y] = 1.0
-                        elif res == 1:
-                            foreground[batch, 0, x, y] = 1.0
-                        # else: already matched
-                fore = self.gauss_filter(foreground)
-                back = self.gauss_filter(background)
-                out_data = self.model(
-                    torch.cat((in_data, fore, back), dim=1)
-                )
-                tot_loss += self.loss(target, out_data).item()
-                ans = (out_data > 0.5).to(dtype=torch.float32)
-                tot_dice += self.loss(target, ans).item()
-
-                fore = self.mix_conv(fore)
-                back = self.mix_conv(back)
-                for batch in range(data[1].shape[0]):
-                    if data[3][batch].item() % 10 != 0:
-                        continue
-                    image = (in_data[batch]*255).to(torch.uint8).cpu().numpy()
-                    area = (ans[batch]*255).to(torch.uint8).cpu().numpy()
-                    fore_img = (fore[batch]*255).to(torch.uint8).cpu().numpy()
-                    back_img = (back[batch]*255).to(torch.uint8).cpu().numpy()
-                    zeros = np.zeros_like(image)
-                    image = np.concatenate((image, image, image))
-                    area = np.concatenate((area, zeros, zeros))
-                    fore_img = np.concatenate((zeros, fore_img, zeros))
-                    back_img = np.concatenate((zeros, zeros, back_img))
-                    tmp = cv.addWeighted(area, 0.7, cv.add(fore_img, back_img), 1.0, 0)
-                    image = cv.addWeighted(image, 0.7, tmp, 0.4, 0.0)
-                    self.writer.add_image(
-                        'val-imgs-' + data[2][batch] + '-' + str(data[3][batch].item()) + '/' + str(data[4][batch].item()),
-                        image, global_step=epoch, dataformats='CHW'
-                    )
-
-        loss = tot_loss / len(self.val_loader)
-        dice = tot_dice / len(self.val_loader)
+        loss = tot_loss / len(self.val_loader) + 1
+        dice = tot_dice / len(self.val_loader) + 1
 
         print('Total #: ', tot_data)
         print('val loss: ', loss)

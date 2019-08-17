@@ -31,11 +31,11 @@ class ImgDataset(torch.utils.data.Dataset):
                     continue
                 tensor = torch.tensor(img[j], dtype=torch.float32)
                 for t in unique:
-                    self.indx.append((len(self.files), t))
+                    self.indx.append((len(self.files), t))  # (第几个图片, 分类标记）
                 self.files.append(tensor)
                 self.labels.append(label[j])
                 self.fileid.append(i)
-                self.channel_id.append(j)
+                self.channel_id.append(j)  # 当前CT的第几层
                 mn = min(mn, tensor.min())
                 mx = max(mx, tensor.max())
 
