@@ -145,15 +145,16 @@ class Trainer(object):
                 self.optimizer.step()
                 self.optimizer.zero_grad()
 
-                self.writer.add_scalar('train/train_loss', loss.item(), self.i_acc + i + 1)
-
                 with torch.no_grad():
+                    loss += 1
+                    self.writer.add_scalar('train/train_loss', loss.item(), self.i_acc + i + 1)
                     ans = (out_data > 0.5).to(dtype=torch.float32)
                     dice = self.loss(target, ans)
                     tot_dice += dice.item()
+                    dice += 1
                     self.writer.add_scalar('train/train_dice', dice.item(), self.i_acc + i + 1)
                     log_str = 'epoch {0:d}, step {1:d}: train_loss {2:.3f}; train_dice {3:.3f}'.format(
-                        epoch + 1, i + 1, loss.item() + 1, dice.item() + 1
+                        epoch + 1, i + 1, loss.item(), dice.item()
                     )
                     print(log_str)
 
