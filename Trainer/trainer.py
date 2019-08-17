@@ -123,13 +123,13 @@ class Trainer(object):
 
             fore = self.gauss_filter(foreground)
             back = self.gauss_filter(background)
-            out_data = self.model(
-                torch.cat((in_data, fore, back), dim=1)
-            )
 
             # Train or Evaluate
             if not train:
                 with torch.no_grad():
+                    out_data = self.model(
+                        torch.cat((in_data, fore, back), dim=1)
+                    )
                     loss = self.loss(target, out_data)
                     tot_loss += loss.item()
                     ans = (out_data > 0.5).to(dtype=torch.float32)
@@ -137,6 +137,9 @@ class Trainer(object):
                     tot_dice += dice.item()
 
             else:
+                out_data = self.model(
+                    torch.cat((in_data, fore, back), dim=1)
+                )
                 # 利用当前的foreground和background训练
                 loss = self.loss(target, out_data)
                 tot_loss += loss.item()
