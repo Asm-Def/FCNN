@@ -43,36 +43,36 @@ class FCNN(Model):
     def forward(self, x):
         out1 = self.B1(x)
         tmp = F.max_pool2d(out1, 2)
-        tmp = F.dropout(tmp, 0.25)
+        tmp = F.dropout(tmp, 0.25, inplace=True)
 
         out2 = self.B2(tmp)
         tmp = F.max_pool2d(out2, 2)
-        tmp = F.dropout(tmp, 0.5)
+        tmp = F.dropout(tmp, 0.5, inplace=True)
 
         out3 = self.B3(tmp)
         tmp = F.max_pool2d(out3, 2)
-        tmp = F.dropout(tmp, 0.5)
+        tmp = F.dropout(tmp, 0.5, inplace=True)
 
         out4 = self.B4(tmp)
         tmp = F.max_pool2d(out4, 2)
-        tmp = F.dropout(tmp, 0.5)
+        tmp = F.dropout(tmp, 0.5, inplace=True)
 
         out5 = self.B5(tmp)
 
         uconv4 = self.U5(out5)
-        uconv4 = F.dropout2d(torch.cat((out4, uconv4), 1))
+        uconv4 = F.dropout2d(torch.cat((out4, uconv4), 1), 0.5, inplace=True)
         uconv4 = self.B6(uconv4)
 
         uconv3 = self.U6(uconv4)
-        uconv3 = F.dropout2d(torch.cat((out3, uconv3), 1))
+        uconv3 = F.dropout2d(torch.cat((out3, uconv3), 1), 0.5, inplace=True)
         uconv3 = self.B7(uconv3)
 
         uconv2 = self.U7(uconv3)
-        uconv2 = F.dropout2d(torch.cat((out2, uconv2), 1))
+        uconv2 = F.dropout2d(torch.cat((out2, uconv2), 1), 0.5, inplace=True)
         uconv2 = self.B8(uconv2)
 
         uconv1 = self.U8(uconv2)
-        uconv1 = F.dropout2d(torch.cat((out1, uconv1), 1))
+        uconv1 = F.dropout2d(torch.cat((out1, uconv1), 1), 0.5, inplace=True)
         uconv1 = self.B9(uconv1)
 
         return torch.sigmoid(self.Out(uconv1))
