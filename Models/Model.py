@@ -49,8 +49,12 @@ class Model(nn.Module):
 
         if modelfile is None:
             model_files = glob.glob(complete_path+"/*")
+            if len(model_files) == 0:  # no model_file to load
+                return 0
             mf = max(model_files)
         else:
             mf = os.path.join(complete_path, modelfile)
 
         self.load_state_dict(torch.load(mf))
+
+        return int(mf[6:-4]) + 1

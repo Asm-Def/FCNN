@@ -162,7 +162,8 @@ class Trainer(object):
             # save model
             if 1 - val_dice > self.best_dice:
                 self.best_dice = 1 - val_dice
-                self.model.save(self.log_dir, epoch)
+
+            self.model.save(self.log_dir, epoch)
 
     def evaluate(self, epoch):
         self.model.eval()

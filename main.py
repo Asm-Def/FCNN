@@ -20,7 +20,9 @@ def create_folder(log_dir):
 if __name__ == '__main__':
     log_dir = os.path.join('log', 'FCNN')
     create_folder(log_dir)
-    fcnn = FCNN().cuda()
+    fcnn = FCNN()
+    begin = fcnn.load()  # 载入当前最新模型
+    fcnn = fcnn.cuda()
     optimizer = optim.Adam(fcnn.parameters(), lr=1e-4)
     train_dataset = ImgDataset(
         os.path.join('Data', 'Training'),
@@ -34,4 +36,4 @@ if __name__ == '__main__':
     print('num_train_imgs: ', len(train_dataset))
     print('num_test_imgs: ', len(test_dataset))
     trainer = Trainer(fcnn, train_loader, test_loader, optimizer, 5, 'FCNN', log_dir)
-    trainer.train(30, begin=0)
+    trainer.train(30, begin=begin)
