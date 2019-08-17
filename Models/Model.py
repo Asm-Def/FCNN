@@ -57,4 +57,4 @@ class Model(nn.Module):
 
         self.load_state_dict(torch.load(mf))
 
-        return int(mf[6:-4]) + 1
+        return int(os.path.split(mf)[1][6:-4]) + 1
