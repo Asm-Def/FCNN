@@ -45,7 +45,7 @@ class Model(nn.Module):
         '''
         complete_path = os.path.join(path, self.name)
         if not os.path.exists(complete_path):
-            raise IOError("{} directory does not exist in {}".format(self.name, path))
+            os.makedirs(complete_path)
 
         if modelfile is None:
             model_files = glob.glob(complete_path+"/*")
