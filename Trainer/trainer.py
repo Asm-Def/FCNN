@@ -108,9 +108,11 @@ class Trainer(object):
                         break
 
                     fore = self.gauss_filter(foreground)
+                    fore /= fore.max()
                     back = self.gauss_filter(background)
+                    back /= back.max()
                     out_data = self.model(
-                        torch.cat((in_data, self.gauss_filter(fore), self.gauss_filter(back)), dim=1)
+                        torch.cat((in_data, fore, back), dim=1)
                     )  # (batch, 1, x, y)
 
                     for batch in range(in_data.shape[0]):
@@ -122,7 +124,9 @@ class Trainer(object):
                         # else: already matched
 
             fore = self.gauss_filter(foreground)
+            fore /= fore.max()
             back = self.gauss_filter(background)
+            back /= back.max()
             out_data = self.model(
                 torch.cat((in_data, fore, back), dim=1)
             )
