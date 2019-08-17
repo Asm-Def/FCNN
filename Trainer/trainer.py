@@ -153,7 +153,7 @@ class Trainer(object):
                     tot_dice += dice.item()
                     self.writer.add_scalar('train/train_dice', dice.item(), self.i_acc + i + 1)
                     log_str = 'epoch {0:d}, step {1:d}: train_loss {2:.3f}; train_dice {3:.3f}'.format(
-                        epoch + 1, i + 1, loss.item(), dice.item()
+                        epoch + 1, i + 1, loss.item() + 1, dice.item() + 1
                     )
                     print(log_str)
 
