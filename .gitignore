@@ -1,2 +1,4 @@
 */__pycache__/
 .idea/
+*.nii.gz
+*/.ipynb_checkpoints/
