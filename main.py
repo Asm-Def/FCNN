@@ -21,7 +21,7 @@ if __name__ == '__main__':
     log_dir = os.path.join('log', 'FCNN')
     create_folder(log_dir)
     fcnn = FCNN()
-    begin = fcnn.load()  # 载入当前最新模型
+    begin = fcnn.load(log_dir)  # 载入当前最新模型
     fcnn = fcnn.cuda()
     optimizer = optim.Adam(fcnn.parameters(), lr=1e-4)
     train_dataset = ImgDataset(
