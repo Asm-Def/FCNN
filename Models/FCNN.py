@@ -17,8 +17,8 @@ class ConvBlock(nn.Module):
         self.CNN2 = nn.Conv2d(out_channel, out_channel, kernel_size, stride, padding, dilation, groups, bias, padding_mode)
         self.BN = nn.BatchNorm2d(out_channel)
 
-    def forward(self, input):
-        y = F.relu(self.BN(self.CNN1(input)), inplace=True)
+    def forward(self, x):
+        y = F.relu(self.BN(self.CNN1(x)), inplace=True)
         return F.relu(self.BN(self.CNN2(y)), inplace=True)
 
 
@@ -38,19 +38,44 @@ class FCNN(Model):
         self.B8 = ConvBlock(256, 128)
         self.U8 = nn.ConvTranspose2d(128, 64, 2, stride=2)
         self.B9 = ConvBlock(128, 64)
-        self.Out = nn.Sequential(nn.Conv2d(64, 2, 1), nn.Softmax(dim=1))
+        self.Out = nn.Conv2d(64, 1, 1)
 
     def forward(self, x):
         out1 = self.B1(x)
-        out2 = self.B2(F.max_pool2d(out1, 2))
-        out3 = self.B3(F.max_pool2d(out2, 2))
-        out4 = self.B4(F.max_pool2d(out3, 2))
-        out5 = self.U5(self.B5(F.max_pool2d(out4, 2)))  # (B,512,A,A)
-        out6 = self.U6(self.B6(torch.cat((out4, out5), 1)))
-        out7 = self.U7(self.B7(torch.cat((out3, out6), 1)))
-        out8 = self.U8(self.B8(torch.cat((out2, out7), 1)))
-        out9 = self.B9(torch.cat((out1, out8), 1))
-        return self.Out(out9)[:, 1:]
+        tmp = F.max_pool2d(out1, 2)
+        tmp = F.dropout(tmp, 0.25)
+
+        out2 = self.B2(tmp)
+        tmp = F.max_pool2d(out2, 2)
+        tmp = F.dropout(tmp, 0.5)
+
+        out3 = self.B3(tmp)
+        tmp = F.max_pool2d(out3, 2)
+        tmp = F.dropout(tmp, 0.5)
+
+        out4 = self.B4(tmp)
+        tmp = F.max_pool2d(out4, 2)
+        tmp = F.dropout(tmp, 0.5)
+
+        out5 = self.B5(tmp)
+
+        uconv4 = self.U5(out5)
+        uconv4 = F.dropout2d(torch.cat((out4, uconv4), 1))
+        uconv4 = self.B6(uconv4)
+
+        uconv3 = self.U6(uconv4)
+        uconv3 = F.dropout2d(torch.cat((out3, uconv3), 1))
+        uconv3 = self.B7(uconv3)
+
+        uconv2 = self.U7(uconv3)
+        uconv2 = F.dropout2d(torch.cat((out2, uconv2), 1))
+        uconv2 = self.B8(uconv2)
+
+        uconv1 = self.U8(uconv2)
+        uconv1 = F.dropout2d(torch.cat((out1, uconv1), 1))
+        uconv1 = self.B9(uconv1)
+
+        return F.sigmoid(self.Out(uconv1))
 
 
 def test():

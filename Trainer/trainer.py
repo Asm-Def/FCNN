@@ -9,7 +9,6 @@ import random
 from tensorboardX import SummaryWriter
 import cv2 as cv
 
-
 class Trainer(object):
     def __init__(self, model, train_loader: DataLoader, val_loader: DataLoader, optimizer, max_iter, model_name, log_dir):
         self.model = model
