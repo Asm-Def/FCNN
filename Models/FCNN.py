@@ -75,7 +75,7 @@ class FCNN(Model):
         uconv1 = F.dropout2d(torch.cat((out1, uconv1), 1))
         uconv1 = self.B9(uconv1)
 
-        return F.sigmoid(self.Out(uconv1))
+        return torch.sigmoid(self.Out(uconv1))
 
 
 def test():
