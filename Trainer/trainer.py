@@ -86,7 +86,7 @@ class Trainer(object):
 
     def Iterate(self, epoch, data_loader: DataLoader, train, tag: str):
         tot_loss, tot_dice = 0, 0
-        for i, data in enumerate(self.train_loader):
+        for i, data in enumerate(data_loader):
             target = data[0].unsqueeze(1).cuda()  # (batch, 1, x, y)
             in_data = data[1].unsqueeze(1).cuda()  # (batch, 1, x, y)
             foreground = torch.zeros_like(in_data).cuda()
@@ -139,6 +139,7 @@ class Trainer(object):
                     ans = (out_data > 0.5).to(dtype=torch.float32)
                     dice = self.loss(target, ans)
                     tot_dice += dice.item()
+                    print(loss.item(), dice.item())
 
             else:
                 # 利用当前的foreground和background训练
