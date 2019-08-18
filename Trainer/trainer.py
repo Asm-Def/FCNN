@@ -139,7 +139,7 @@ class Trainer(object):
                     ans = (out_data > 0.5).to(dtype=torch.float32)
                     dice = self.loss(target, ans)
                     tot_dice += dice.item()
-                    print(loss.item(), dice.item())
+                    print('loss:{}, dice:{}'.format(loss.item(), dice.item()))
 
             else:
                 # 利用当前的foreground和background训练
@@ -166,29 +166,35 @@ class Trainer(object):
                 fore = self.mix_conv(fore)
                 back = self.mix_conv(back)
                 for batch in range(data[1].shape[0]):
-                    if not train and data[2][batch] != 'img0001.nii.gz':
+                    if not train and (data[2][batch] != 'img0001.nii.gz' or data[3][batch].item() != 120):
                         continue
 
-                    if train and data[2][batch] != 'img0002.nii.gz':
+                    if train and (data[2][batch] != 'img0002.nii.gz' or data[3][batch].item() != 120):
                         continue
-                    print(data[2][batch])
 
                     image = (in_data[batch] * 255).to(torch.uint8).cpu().numpy()
-                    area = (ans[batch] * 255).to(torch.uint8).cpu().numpy()
+                    area = (ans[batch] * 200).to(torch.uint8).cpu().numpy()
                     fore_img = (fore[batch] * 255).to(torch.uint8).cpu().numpy()
                     back_img = (back[batch] * 255).to(torch.uint8).cpu().numpy()
                     zeros = np.zeros_like(image)
                     image = np.concatenate((image, image, image))
                     area = np.concatenate((area, zeros, zeros))
-                    fore_img = np.concatenate((zeros, fore_img, zeros))
-                    back_img = np.concatenate((zeros, zeros, back_img))
-                    tmp = cv.addWeighted(area, 0.7, cv.add(fore_img, back_img), 1.0, 0)
-                    image = cv.addWeighted(image, 0.7, tmp, 0.4, 0.0)
+                    area_img = np.concatenate((area, fore_img, back_img))
+                    image = cv.addWeighted(image, 0.7, area_img, 0.4, 0.0)
                     self.writer.add_image(
-                        '{}-imgs-'.format(tag) + data[2][batch] + '-' + str(data[3][batch].item()) + '/' + str(
+                        '{}-imgs-ans'.format(tag) + data[2][batch] + '-' + str(data[3][batch].item()) + '/' + str(
                             data[4][batch].item()),
                         image, global_step=epoch, dataformats='CHW'
                     )
+                    area = (out_data * 200).to(torch.uint8).cpu().numpy()
+                    area_img = np.concatenate((area, fore_img, back_img))
+                    image = cv.addWeighted(image, 0.7, area_img, 0.4, 0.0)
+                    self.writer.add_image(
+                        '{}-imgs-pred'.format(tag) + data[2][batch] + '-' + str(data[3][batch].item()) + '/' + str(
+                            data[4][batch].item()),
+                        image, global_step=epoch, dataformats='CHW'
+                    )
+
         tot_dice /= len(data_loader)
         tot_loss /= len(data_loader)
         return tot_loss, tot_dice
