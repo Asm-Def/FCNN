@@ -8,6 +8,17 @@ import os
 import random
 from tensorboardX import SummaryWriter
 import cv2 as cv
+import threading
+
+class MyThread(threading.Thread):
+    def __init__(self, func, cur_batch, cur_img):
+        threading.Thread.__init__(self)
+        self.func = func
+        self.cur_batch = self.cur_batch
+        self.cur_img = cur_img
+
+    def run(self):
+        return self.func(self.cur_batch, self.cur_img)
 
 class Trainer(object):
     def __init__(self, model, train_loader: DataLoader, val_loader: DataLoader, optimizer, max_iter, model_name, log_dir):
@@ -21,6 +32,7 @@ class Trainer(object):
         self.model.cuda()
         self.best_dice = .0
         self.i_acc = 0
+        self.threshold = .5
         self.gauss = torch.empty((5, 5), dtype=torch.float32)
         for i in range(5):
             for j in range(5):
@@ -45,7 +57,7 @@ class Trainer(object):
         :param predict: tensor(x, y), dtype=torch.float32
         :return: (-1/0/1, x, y)
         '''
-        graph = target - (predict > 0.5).to(dtype=torch.int)
+        graph = target - (predict > self.threshold).to(dtype=torch.int)
         if graph.min() == 0 and graph.max() == 0:
             return 0, 0, 0
         foreground = (graph == 1).to(dtype=torch.float32)  # 需点击的部分为1
@@ -93,14 +105,23 @@ class Trainer(object):
             background = torch.zeros_like(in_data).cuda()
             with torch.no_grad():
                 tmp = torch.zeros_like(target[0, 0])
-                for batch in range(in_data.shape[0]):
-                    res, x, y = self.get_click(target[batch, 0], tmp)
+
+                def do_clicks(cur_batch, cur):
+                    res, x, y = self.get_click(target[cur_batch, 0], cur)
                     if res == -1:
-                        background[batch, 0, x, y] = 1.0
+                        background[cur_batch, 0, x, y] = 1.0
                     elif res == 1:
-                        foreground[batch, 0, x, y] = 1.0
-                    else:
-                        raise Exception('Empty Label!')
+                        foreground[cur_batch, 0, x, y] = 1.0
+
+                threads = []
+
+                for batch in range(in_data.shape[0]):
+                    t = MyThread(do_clicks, batch, tmp)
+                    threads.append(t)
+                    t.start()
+
+                for batch in range(in_data.shape[0]):
+                    threads[batch].join()
 
                 for it in range(1, self.max_iter):
                     prob = it / self.max_iter * 0.9
@@ -116,12 +137,11 @@ class Trainer(object):
                     )  # (batch, 1, x, y)
 
                     for batch in range(in_data.shape[0]):
-                        res, x, y = self.get_click(target[batch, 0], out_data[batch, 0])
-                        if res == -1:
-                            background[batch, 0, x, y] = 1.0
-                        elif res == 1:
-                            foreground[batch, 0, x, y] = 1.0
-                        # else: already matched
+                        threads[batch].cur_img = out_data[batch, 0]
+                        threads[batch].start()
+
+                    for batch in range(in_data.shape[0]):
+                        threads[batch].join()
 
                 fore = self.gauss_filter(foreground)
                 back = self.gauss_filter(background)
@@ -136,7 +156,7 @@ class Trainer(object):
                 with torch.no_grad():
                     loss = self.loss(target, out_data)
                     tot_loss += loss.item()
-                    ans = (out_data > 0.5).to(dtype=torch.float32)
+                    ans = (out_data > self.threshold).to(dtype=torch.float32)
                     dice = self.loss(target, ans)
                     tot_dice += dice.item()
                     print('loss:{}, dice:{}'.format(loss.item(), dice.item()))
@@ -152,7 +172,7 @@ class Trainer(object):
 
                 with torch.no_grad():
                     self.writer.add_scalar('train/train_loss', loss.item()+1, self.i_acc + i + 1)
-                    ans = (out_data > 0.5).to(dtype=torch.float32)
+                    ans = (out_data > self.threshold).to(dtype=torch.float32)
                     dice = self.loss(target, ans)
                     tot_dice += dice.item()
                     self.writer.add_scalar('train/train_dice', dice.item()+1, self.i_acc + i + 1)
@@ -200,6 +220,9 @@ class Trainer(object):
         return tot_loss, tot_dice
 
     def train(self, n_epoch, begin=0):
+
+        self.i_acc = begin * len(self.train_loader)
+
         self.model.train()
 
         for epoch in range(begin, n_epoch):

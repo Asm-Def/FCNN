@@ -77,6 +77,9 @@ class FCNN(Model):
 
         return torch.sigmoid(self.Out(uconv1))
 
+    def get_ans(self, x, threshold):
+        return self.forward(x) > threshold
+
 
 def test():
     torch.cuda.current_device()
