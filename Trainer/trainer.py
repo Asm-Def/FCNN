@@ -198,7 +198,6 @@ class Trainer(object):
                     back_img = (back[batch] * 255).to(torch.uint8).cpu().numpy()
                     zeros = np.zeros_like(image)
                     image = np.concatenate((image, image, image))
-                    area = np.concatenate((area, zeros, zeros))
                     area_img = np.concatenate((area, fore_img, back_img))
                     image = cv.addWeighted(image, 0.7, area_img, 0.4, 0.0)
                     self.writer.add_image(
