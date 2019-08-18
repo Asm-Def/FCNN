@@ -205,7 +205,7 @@ class Trainer(object):
                             data[4][batch].item()),
                         image, global_step=epoch, dataformats='CHW'
                     )
-                    area = (out_data * 200).to(torch.uint8).cpu().numpy()
+                    area = (out_data[batch] * 200).to(torch.uint8).cpu().numpy()
                     area_img = np.concatenate((area, fore_img, back_img))
                     image = cv.addWeighted(image, 0.7, area_img, 0.4, 0.0)
                     self.writer.add_image(
