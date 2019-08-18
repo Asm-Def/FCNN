@@ -14,7 +14,7 @@ class MyThread(threading.Thread):
     def __init__(self, func, cur_batch, cur_img):
         threading.Thread.__init__(self)
         self.func = func
-        self.cur_batch = self.cur_batch
+        self.cur_batch = cur_batch
         self.cur_img = cur_img
 
     def run(self):
