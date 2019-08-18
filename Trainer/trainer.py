@@ -137,7 +137,7 @@ class Trainer(object):
                     )  # (batch, 1, x, y)
 
                     for batch in range(in_data.shape[0]):
-                        threads[batch] = MyThread(do_clicks, out_data[batch, 0])
+                        threads[batch] = MyThread(do_clicks, batch, out_data[batch, 0])
                         threads[batch].start()
 
                     for batch in range(in_data.shape[0]):
