@@ -108,11 +108,11 @@ class Trainer(object):
                         break
 
                     fore = self.gauss_filter(foreground)
-                    fore /= fore.max()
                     back = self.gauss_filter(background)
-                    back /= back.max()
+                    clicks = torch.cat((fore, back), dim=1)
+                    clicks /= clicks.max()
                     out_data = self.model(
-                        torch.cat((in_data, fore, back), dim=1)
+                        torch.cat((in_data, clicks), dim=1)
                     )  # (batch, 1, x, y)
 
                     for batch in range(in_data.shape[0]):
@@ -123,12 +123,13 @@ class Trainer(object):
                             foreground[batch, 0, x, y] = 1.0
                         # else: already matched
 
-            fore = self.gauss_filter(foreground)
-            fore /= fore.max()
-            back = self.gauss_filter(background)
-            back /= back.max()
+                fore = self.gauss_filter(foreground)
+                back = self.gauss_filter(background)
+                clicks = torch.cat((fore, back), dim=1)
+                clicks /= clicks.max()
+
             out_data = self.model(
-                torch.cat((in_data, fore, back), dim=1)
+                torch.cat((in_data, clicks), dim=1)
             )
             # Train or Evaluate
             if not train:
