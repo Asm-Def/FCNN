@@ -165,11 +165,12 @@ class Trainer(object):
                 fore = self.mix_conv(fore)
                 back = self.mix_conv(back)
                 for batch in range(data[1].shape[0]):
-                    if not train and (data[2][batch] != 'img0001.nii.gz' or data[3][batch].item() != 120):
+                    if not train and data[2][batch] != 'img0001.nii.gz':
                         continue
 
-                    if train and (data[2][batch] != 'img0002.nii.gz' or data[3][batch].item() != 120):
+                    if train and data[2][batch] != 'img0002.nii.gz':
                         continue
+                    print(data[2][batch])
 
                     image = (in_data[batch] * 255).to(torch.uint8).cpu().numpy()
                     area = (ans[batch] * 255).to(torch.uint8).cpu().numpy()
