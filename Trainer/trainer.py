@@ -122,6 +122,7 @@ class Trainer(object):
 
                 for batch in range(in_data.shape[0]):
                     threads[batch].join()
+                    del threads[batch]
 
                 for it in range(1, self.max_iter):
                     prob = it / self.max_iter * 0.9
@@ -142,6 +143,7 @@ class Trainer(object):
 
                     for batch in range(in_data.shape[0]):
                         threads[batch].join()
+                        del threads[batch]
 
                 fore = self.gauss_filter(foreground)
                 back = self.gauss_filter(background)
