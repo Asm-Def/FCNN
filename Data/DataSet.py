@@ -8,11 +8,11 @@ import random
 
 class ImgDataset(torch.utils.data.Dataset):
     def __init__(self, root_dir, fileset):
-        tmp = glob.glob(os.path.join(root_dir, 'img', '*.nii.gz'))
-        random.shuffle(tmp)
+        tmp = glob.glob(os.path.join(root_dir, 'img', '*.nii.gz')).sort()
         self.filepaths = []
         for t in fileset:
             self.filepaths.append(tmp[t])
+        random.shuffle(self.filepaths)
         self.files = []
         self.labels = []
         self.indx = []
