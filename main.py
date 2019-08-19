@@ -26,7 +26,7 @@ if __name__ == '__main__':
     optimizer = optim.Adam(fcnn.parameters(), lr=1e-4)
     train_dataset = ImgDataset(
         os.path.join('Data', 'Training'),
-        (1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 13, 14, 16, 17, 18, 19, 21,22,23,24,26,27,28,29)
+        (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,22,23,24,25,26,27,28,29)
     )
     print('train_dataset', len(train_dataset))
     test_dataset = ImgDataset(os.path.join('Data', 'Training'), (0, 5, 10, 15, 20, 25))
