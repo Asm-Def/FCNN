@@ -32,15 +32,10 @@ class ImgDataset(torch.utils.data.Dataset):
                 tensor = torch.tensor(img[j], dtype=torch.float32)
                 for t in unique:
                     self.indx.append((len(self.files), t))  # (第几个图片, 分类标记）
-                self.files.append(tensor)
+                self.files.append(torch.tanh(tensor / 170))
                 self.labels.append(label[j])
                 self.fileid.append(i)
                 self.channel_id.append(j)  # 当前CT的第几层
-                mn = min(mn, tensor.min())
-                mx = max(mx, tensor.max())
-
-        for i in range(len(self.files)):
-            self.files[i] = (self.files[i] - mn) / (mx - mn)
 
         print(mn, mx)
 
