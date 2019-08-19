@@ -194,11 +194,6 @@ class Trainer(object):
                     print('in_data:[{},{}]'.format(in_data[batch].min().item(), in_data[batch].max().item()))
                     print('out_data:[{},{}]'.format(out_data[batch].min().item(), out_data[batch].max().item()))
 
-                    for i in range(out_data[batch,0].shape[0]):
-                        for j in range(out_data[batch,0].shape[1]):
-                            print('{0:.1f}'.format(out_data[batch, 0, i, j].item()), end='')
-                        print('')
-
                     image = (in_data[batch] * 255).to(torch.uint8).cpu().numpy()
                     area = (ans[batch] * 200).to(torch.uint8).cpu().numpy()
                     fore_img = (fore[batch] * 255).to(torch.uint8).cpu().numpy()
