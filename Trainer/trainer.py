@@ -153,13 +153,12 @@ class Trainer(object):
             )
             # Train or Evaluate
             if not train:
-                with torch.no_grad():
-                    loss = self.loss(target, out_data)
-                    tot_loss += loss.item()
-                    ans = (out_data > self.threshold).to(dtype=torch.float32)
-                    dice = self.loss(target, ans)
-                    tot_dice += dice.item()
-                    print('loss:{}, dice:{}'.format(loss.item(), dice.item()))
+                loss = self.loss(target, out_data)
+                tot_loss += loss.item()
+                ans = (out_data > self.threshold).to(dtype=torch.float32)
+                dice = self.loss(target, ans)
+                tot_dice += dice.item()
+                print('loss:{}, dice:{}'.format(loss.item(), dice.item()))
 
             else:
                 # 利用当前的foreground和background训练
@@ -192,24 +191,36 @@ class Trainer(object):
                     if train and (data[2][batch] != 'img0002.nii.gz' or data[3][batch].item() != 120):
                         continue
 
+                    for i in range(in_data[batch,0].shape[0]):
+                        for j in range(in_data[batch,0].shape[1]):
+                            print(in_data[batch, 0, i, j], end='')
+                        print('')
+                        
+                    print('')
+
+                    for i in range(out_data[batch,0].shape[0]):
+                        for j in range(out_data[batch,0].shape[1]):
+                            print(out_data[batch, 0, i, j], end='')
+                        print('')
+
                     image = (in_data[batch] * 255).to(torch.uint8).cpu().numpy()
                     area = (ans[batch] * 200).to(torch.uint8).cpu().numpy()
                     fore_img = (fore[batch] * 255).to(torch.uint8).cpu().numpy()
                     back_img = (back[batch] * 255).to(torch.uint8).cpu().numpy()
-                    zeros = np.zeros_like(image)
                     image = np.concatenate((image, image, image))
                     area_img = np.concatenate((area, fore_img, back_img))
                     image = cv.addWeighted(image, 0.7, area_img, 0.4, 0.0)
                     self.writer.add_image(
-                        '{}-imgs-ans'.format(tag) + data[2][batch] + '-' + str(data[3][batch].item()) + '/' + str(
+                        '{}-imgs-ans-'.format(tag) + data[2][batch] + '-' + str(data[3][batch].item()) + '/' + str(
                             data[4][batch].item()),
                         image, global_step=epoch, dataformats='CHW'
                     )
+
                     area = (out_data[batch] * 200).to(torch.uint8).cpu().numpy()
                     area_img = np.concatenate((area, fore_img, back_img))
                     image = cv.addWeighted(image, 0.7, area_img, 0.4, 0.0)
                     self.writer.add_image(
-                        '{}-imgs-pred'.format(tag) + data[2][batch] + '-' + str(data[3][batch].item()) + '/' + str(
+                        '{}-imgs-pred-'.format(tag) + data[2][batch] + '-' + str(data[3][batch].item()) + '/' + str(
                             data[4][batch].item()),
                         image, global_step=epoch, dataformats='CHW'
                     )
@@ -246,14 +257,12 @@ class Trainer(object):
 
     def evaluate(self, epoch):
         self.model.eval()
-        tot_loss = 0.
-        tot_dice = 0.
         tot_data = 0
         with torch.no_grad():
             loss, dice = self.Iterate(epoch, self.val_loader, False, 'val')
 
-        loss = tot_loss / len(self.val_loader) + 1
-        dice = tot_dice / len(self.val_loader) + 1
+        loss = loss / len(self.val_loader) + 1
+        dice = dice / len(self.val_loader) + 1
 
         print('Total #: ', tot_data)
         print('val loss: ', loss)
