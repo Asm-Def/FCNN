@@ -193,14 +193,14 @@ class Trainer(object):
 
                     for i in range(in_data[batch,0].shape[0]):
                         for j in range(in_data[batch,0].shape[1]):
-                            print(in_data[batch, 0, i, j].item(), end='')
+                            print('{.1f}'.format(in_data[batch, 0, i, j].item()), end='')
                         print('')
 
                     print('')
 
                     for i in range(out_data[batch,0].shape[0]):
                         for j in range(out_data[batch,0].shape[1]):
-                            print(out_data[batch, 0, i, j].item(), end='')
+                            print('{.1f}'.format(out_data[batch, 0, i, j].item()), end='')
                         print('')
 
                     image = (in_data[batch] * 255).to(torch.uint8).cpu().numpy()
