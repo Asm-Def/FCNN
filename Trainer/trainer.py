@@ -191,12 +191,8 @@ class Trainer(object):
                     if train and (data[2][batch] != 'img0002.nii.gz' or data[3][batch].item() != 120):
                         continue
 
-                    for i in range(in_data[batch,0].shape[0]):
-                        for j in range(in_data[batch,0].shape[1]):
-                            print('{0:.1f}'.format(in_data[batch, 0, i, j].item()), end='')
-                        print('')
-
-                    print('')
+                    print('in_data:[{},{}]'.format(in_data[batch].min().item(), in_data[batch].max().item()))
+                    print('out_data:[{},{}]'.format(out_data[batch].min().item(), out_data[batch].max().item()))
 
                     for i in range(out_data[batch,0].shape[0]):
                         for j in range(out_data[batch,0].shape[1]):
@@ -264,7 +260,6 @@ class Trainer(object):
         loss = loss / len(self.val_loader) + 1
         dice = dice / len(self.val_loader) + 1
 
-        print('Total #: ', tot_data)
         print('val loss: ', loss)
         print('val dice: ', dice)
 
