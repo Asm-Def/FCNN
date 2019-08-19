@@ -158,7 +158,6 @@ class Trainer(object):
                 ans = (out_data > self.threshold).to(dtype=torch.float32)
                 dice = self.loss(target, ans)
                 tot_dice += dice.item()
-                print('loss:{}, dice:{}'.format(loss.item(), dice.item()))
 
             else:
                 # 利用当前的foreground和background训练
