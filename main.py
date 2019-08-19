@@ -25,13 +25,13 @@ if __name__ == '__main__':
     begin = fcnn.load(log_dir)  # 载入当前最新模型
     fcnn = fcnn.cuda()
     optimizer = optim.Adam(fcnn.parameters(), lr=1e-4)
-    file_seq = (i for i in range(30))
+    file_seq = [i for i in range(30)]
     train_dataset = ImgDataset(
         os.path.join('Data', 'Training'),
         file_seq
     )
     print('train_dataset', len(train_dataset))
-    test_dataset = ImgDataset(os.path.join('Data', 'Training'), random.sample(file_seq, 3))
+    test_dataset = ImgDataset(os.path.join('Data', 'Training'), [0] + random.sample(file_seq, 2))
     print('test_dataset', len(test_dataset))
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=9, shuffle=False)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=16, shuffle=True)
