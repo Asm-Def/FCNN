@@ -29,7 +29,6 @@ class Trainer(object):
         self.max_iter = max_iter
         self.model_name = model_name
         self.log_dir = log_dir
-        self.model.cuda()
         self.best_dice = .0
         self.i_acc = 0
         self.threshold = .5
@@ -42,10 +41,12 @@ class Trainer(object):
         mix = torch.ones((5, 5), dtype=torch.float32)
         self.mix_conv = nn.Conv2d(1, 1, 5, padding=2, bias=False)
         self.mix_conv.weight = nn.Parameter(mix.view(1, 1, 5, 5), False)
-        self.mix_conv = self.mix_conv.cuda()
         self.gauss_filter = nn.Conv2d(1, 1, 5, padding=2, bias=False)
         self.gauss_filter.weight = nn.Parameter(self.gauss.view(1, 1, 5, 5), False)
-        self.gauss_filter = self.gauss_filter.cuda()
+
+        if torch.cuda.is_available():
+            self.mix_conv = self.mix_conv.cuda()
+            self.gauss_filter = self.gauss_filter.cuda()
 
         if self.log_dir is not None:
             self.writer = SummaryWriter(log_dir)
@@ -99,10 +100,17 @@ class Trainer(object):
     def Iterate(self, epoch, data_loader: DataLoader, train, tag: str):
         tot_loss, tot_dice = 0, 0
         for i, data in enumerate(data_loader):
-            target = data[0].unsqueeze(1).cuda()  # (batch, 1, x, y)
-            in_data = data[1].unsqueeze(1).cuda()  # (batch, 1, x, y)
-            foreground = torch.zeros_like(in_data).cuda()
-            background = torch.zeros_like(in_data).cuda()
+            target = data[0].unsqueeze(1)  # (batch, 1, x, y)
+            in_data = data[1].unsqueeze(1)  # (batch, 1, x, y)
+            foreground = torch.zeros_like(in_data)
+            background = torch.zeros_like(in_data)
+
+            if torch.cuda.is_available():
+                target = target.cuda()
+                in_data = in_data.cuda()
+                foreground = foreground.cuda()
+                background = background.cuda()
+
             with torch.no_grad():
                 tmp = torch.zeros_like(target[0, 0])
 

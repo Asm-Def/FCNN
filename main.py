@@ -23,7 +23,8 @@ if __name__ == '__main__':
     create_folder(log_dir)
     fcnn = FCNN()
     begin = fcnn.load(log_dir)  # 载入当前最新模型
-    fcnn = fcnn.cuda()
+    if torch.cuda.is_available():
+        fcnn = fcnn.cuda()
     optimizer = optim.Adam(fcnn.parameters(), lr=1e-4)
     file_seq = [i for i in range(30)]
     train_dataset = ImgDataset(
