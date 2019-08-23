@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>FCNN</title>
+</head>
+<body>
+{% for file in args[0] %}
+<a href="/img?file={{ file[0] }}&token={{ args[1] }}">{{ file[1] }}</a><br/>
+{% endfor %}
+</body>
+</html>

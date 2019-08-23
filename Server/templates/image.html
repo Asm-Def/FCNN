@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Image</title>
+</head>
+<body>
+
+<img style="margin: 0px; padding: 0px" src="/api/get-predict?token={{ token }}&fore_click=[]&back_click=[]" id="predict-img"/>
+<div id="buttons">
+    {% for i in range(channels) %}
+    <button onclick="mod_channel({{ i }})">{{ i }}</button>
+    {% endfor %}
+</div>
+<script type="text/javascript">
+var fore_clicks=Array()
+var back_clicks=Array()
+function mod_channel(ch_id)
+{
+    console.log("mod_channel")
+    req = new XMLHttpRequest();
+    url = "/api/modify-channel/" + ch_id;
+    // postStr = "token={{ token }}&fore_click='"+JSON.stringify(fore_clicks)+"'&back_click='"+JSON.stringify(back_clicks)+"'";
+    postStr = "token={{ token }}";
+    req.open("POST", url, true);
+    req.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    req.send(postStr);
+    req.onreadystatechange = function()
+    {
+        if(req.readyState == 4 && req.status == 200)
+            get_pred();
+    };
+}
+function get_pred()
+{
+    url = "/api/get-predict";
+    postStr = "token={{ token }}&fore_click="+JSON.stringify(fore_clicks)+"&back_click="+JSON.stringify(back_clicks);
+    req = new XMLHttpRequest();
+    req.open("POST", url, true);
+    req.responseType = "blob";
+    req.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    req.onload = function()
+    {
+        if(this.status == 200)
+        {
+            console.log("done")
+            var blob = this.response;
+            var img = document.getElementById("predict-img");
+            img.onload = function(e){
+                window.URL.revokeObjectURL(img.src);
+            };
+            img.src = window.URL.createObjectURL(blob);
+        }
+    };
+    req.send(postStr);
+}
+
+get_pred();
+var pred = document.getElementById("predict-img");
+document.oncontextmenu=function(){
+     return false;
+};
+document.ondragstart=function(){
+    return false;
+};
+document.onselectstart=function(){
+    return false;
+};
+pred.addEventListener('mousedown', function(e){
+    console.log(e.offsetX, e.offsetY);
+    console.log(e.layerX, e.layerY);
+    if(e.which == 1)
+        fore_clicks.push([e.offsetY, e.offsetX]);
+    else if(e.which == 3)
+        back_clicks.push([e.offsetY, e.offsetX]);
+    get_pred();
+});
+</script>
+
+</body>
+</html>
