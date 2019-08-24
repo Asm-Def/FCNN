@@ -21,7 +21,7 @@ if torch.cuda.is_available():
 
 my_pass = '29jfqw0q4'
 
-files = sorted(glob.glob('../Data/files/img/img*.nii.gz'))
+filenames = sorted(glob.glob('../Data/files/img/img*.nii.gz'))
 # images = [np.tanh(nib.load(file).get_data().transpose((2, 1, 0)) / 170.0) for file in files]
 cur_nib = None
 
@@ -29,7 +29,7 @@ cur_nib = None
 def get_cur_nib(i):
     global files, cur_nib
     assert 0 <= i < len(files)
-    cur_nib = np.tanh(nib.load(files[i]).get_data().transpose((2, 1, 0)) / 170.0)
+    cur_nib = np.tanh(nib.load(filenames[i][1]).get_data().transpose((2, 1, 0)) / 170.0)
 
 
 cur_file = None
@@ -38,7 +38,8 @@ tensor = None
 predict = None
 
 
-files = [(i, os.path.split(file)[-1]) for i, file in enumerate(files)]
+files = [(i, os.path.split(file)[-1]) for i, file in enumerate(filenames)]
+
 
 # Gauss Filer
 tmp = torch.empty((5, 5), dtype=torch.float32)
