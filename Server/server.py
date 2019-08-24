@@ -22,7 +22,16 @@ if torch.cuda.is_available():
 my_pass = '29jfqw0q4'
 
 files = sorted(glob.glob('../Data/files/img/img*.nii.gz'))
-images = [np.tanh(nib.load(file).get_data().transpose((2, 1, 0)) / 170.0) for file in files]
+# images = [np.tanh(nib.load(file).get_data().transpose((2, 1, 0)) / 170.0) for file in files]
+cur_nib = None
+
+
+def get_cur_nib(i):
+    global files, cur_nib
+    assert 0 <= i < len(files)
+    cur_nib = np.tanh(nib.load(files[i]).get_data().transpose((2, 1, 0)) / 170.0)
+
+
 cur_file = None
 image = None
 tensor = None
@@ -104,28 +113,29 @@ def wrap_image():  # 将预测结果拼接成用来显示的图像
 
 @app.route('/img', methods=['GET'])
 def get_image():
-    global images, image, tensor, cur_file, predict
+    global image, cur_nib, tensor, cur_file, predict
     password = request.args.get('token')
     if password == my_pass:
         cur_file = int(request.args.get('file'))
-        image = images[cur_file][0]
+        get_cur_nib(cur_file)
+        image = cur_nib[0]
         predict = np.zeros(image.shape)
         wrap_image()
 
-        return render_template('image.html', channels=images[cur_file].shape[0], token=password)
+        return render_template('image.html', channels=cur_nib.shape[0], token=password)
     else:
         flask.abort(404)
 
 
 @app.route('/api/modify-channel/<int:ch_id>', methods=['POST'])
 def mod_channel(ch_id):
-    global images, image, tensor, cur_file, predict
+    global image, tensor, cur_file, predict
     password = request.form['token']
     print('password=', password)
     print("ch_id=", ch_id)
-    print("len=", images[cur_file].shape[0])
-    if password == my_pass and 0 <= ch_id < int(images[cur_file].shape[0]):
-        image = images[cur_file][ch_id]
+    print("len=", cur_nib.shape[0])
+    if password == my_pass and 0 <= ch_id < int(cur_nib.shape[0]):
+        image = cur_nib[ch_id]
         return "OK"
 
     else:
