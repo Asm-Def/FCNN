@@ -21,7 +21,7 @@ if torch.cuda.is_available():
 
 my_pass = '29jfqw0q4'
 
-filenames = sorted(glob.glob('../Data/files/img/img*.nii.gz'))
+filenames = sorted(glob.glob('Data/files/img/img*.nii.gz'))
 # images = [np.tanh(nib.load(file).get_data().transpose((2, 1, 0)) / 170.0) for file in files]
 cur_nib = None
 
