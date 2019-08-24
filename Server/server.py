@@ -29,7 +29,7 @@ cur_nib = None
 def get_cur_nib(i):
     global files, cur_nib
     assert 0 <= i < len(files)
-    cur_nib = np.tanh(nib.load(filenames[i][1]).get_data().transpose((2, 1, 0)) / 170.0)
+    cur_nib = np.tanh(nib.load(filenames[i]).get_data().transpose((2, 1, 0)) / 170.0)
 
 
 cur_file = None
