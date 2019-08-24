@@ -55,6 +55,10 @@ class Model(nn.Module):
         else:
             mf = os.path.join(complete_path, modelfile)
 
-        self.load_state_dict(torch.load(mf))
+        if torch.cuda.is_available():
+            dev = torch.device('cuda')
+        else:
+            dev = torch.device('cpu')
+        self.load_state_dict(torch.load(mf, map_location=dev))
 
         return int(os.path.split(mf)[1][6:-4]) + 1
