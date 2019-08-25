@@ -165,7 +165,7 @@ def get_pred():
     else:
         wrap_tensor(fore, back)
         with torch.no_grad():
-            predict = model(tensor).cpu().numpy().reshape(image.shape)
+            predict = model.get_ans(tensor, threshold=0.6).cpu().numpy().reshape(image.shape)
 
     wrap_image()
 

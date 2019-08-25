@@ -25,6 +25,8 @@ function mod_channel(ch_id)
     req.open("POST", url, true);
     req.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
     req.send(postStr);
+    fore_clicks = Array();
+    back_clicks = Array();
     req.onreadystatechange = function()
     {
         if(req.readyState == 4 && req.status == 200)
@@ -33,6 +35,7 @@ function mod_channel(ch_id)
 }
 function get_pred()
 {
+    pred.removeEventListener('mousedown', do_click);
     url = "/api/get-predict";
     postStr = "token={{ token }}&fore_click="+JSON.stringify(fore_clicks)+"&back_click="+JSON.stringify(back_clicks);
     req = new XMLHttpRequest();
@@ -51,6 +54,7 @@ function get_pred()
             };
             img.src = window.URL.createObjectURL(blob);
         }
+        pred.addEventListener('mousedown', do_click);
     };
     req.send(postStr);
 }
@@ -66,7 +70,9 @@ document.ondragstart=function(){
 document.onselectstart=function(){
     return false;
 };
-pred.addEventListener('mousedown', function(e){
+pred.addEventListener('mousedown', do_click);
+
+function do_click(e){
     console.log(e.offsetX, e.offsetY);
     console.log(e.layerX, e.layerY);
     if(e.which == 1)
@@ -74,7 +80,7 @@ pred.addEventListener('mousedown', function(e){
     else if(e.which == 3)
         back_clicks.push([e.offsetY, e.offsetX]);
     get_pred();
-});
+}
 </script>
 
 </body>
