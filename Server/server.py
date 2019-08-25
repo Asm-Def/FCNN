@@ -105,8 +105,8 @@ def wrap_image():  # 将预测结果拼接成用来显示的图像
     if fore_image is None:
         fore = back = np.zeros_like(area)
     else:
-        fore = fore_image.reshape(img.shape).cpu().numpy()
-        back = back_image.reshape(img.shape).cpu().numpy()
+        fore = (fore_image.reshape(img.shape) * 255).cpu().numpy().astype(np.uint8)
+        back = (back_image.reshape(img.shape) * 255).cpu().numpy().astype(np.uint8)
 
     img = np.stack((img, img, img), 2)
     area = np.stack((area, fore, back), 2)
