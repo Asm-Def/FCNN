@@ -36,6 +36,8 @@ cur_file = None
 image = None
 tensor = None
 predict = None
+fore_image = None
+back_image = None
 
 
 files = [(i, os.path.split(file)[-1]) for i, file in enumerate(filenames)]
@@ -65,7 +67,7 @@ def index():
 
 
 def wrap_tensor(fore_clicks, back_clicks):
-    global tensor, image
+    global tensor, image, fore_image, back_image
     assert not (image is None)
 
     img = torch.from_numpy(image).to(dtype=torch.float32)  # (x, y)
@@ -86,8 +88,8 @@ def wrap_tensor(fore_clicks, back_clicks):
 
     img = img.unsqueeze(0).unsqueeze(0)
     with torch.no_grad():
-        fore = gauss_filter(fore.unsqueeze(0).unsqueeze(0))
-        back = gauss_filter(back.unsqueeze(0).unsqueeze(0))
+        fore_image = fore = gauss_filter(fore.unsqueeze(0).unsqueeze(0))
+        back_image = back = gauss_filter(back.unsqueeze(0).unsqueeze(0))
 
     clicks = torch.cat((fore, back), 1)
     clicks /= clicks.max()
@@ -96,14 +98,16 @@ def wrap_tensor(fore_clicks, back_clicks):
 
 
 def wrap_image():  # 将预测结果拼接成用来显示的图像
-    global image, predict
+    global image, predict, fore_image, back_image
     assert not image is None
     img = ((image + 1) * (255 / 2)).astype(np.uint8)
     area = (predict * 255).astype(np.uint8)
+    fore = fore_image.reshape(img.shape).cpu().numpy()
+    back = back_image.reshape(img.shape).cpu().numpy()
 
     img = np.stack((img, img, img), 2)
-    zeros = np.zeros_like(area)
-    area = np.stack((area, zeros, zeros), 2)
+    # zeros = np.zeros_like(area)
+    area = np.stack((area, fore, back), 2)
     print(img.dtype, area.dtype)
     img = cv.cvtColor(cv.addWeighted(img, 0.7, area, 0.3, 0.0), cv.COLOR_RGB2BGR)
 
@@ -165,7 +169,7 @@ def get_pred():
     else:
         wrap_tensor(fore, back)
         with torch.no_grad():
-            predict = model.get_ans(tensor, threshold=0.6).cpu().numpy().reshape(image.shape)
+            predict = model.get_ans(tensor, threshold=0.5).cpu().numpy().reshape(image.shape)
 
     wrap_image()
 
