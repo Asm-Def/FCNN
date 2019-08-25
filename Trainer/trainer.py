@@ -114,6 +114,7 @@ class Trainer(object):
             in_data = data[1].unsqueeze(1)  # (batch, 1, x, y)
             foreground = torch.zeros_like(in_data)
             background = torch.zeros_like(in_data)
+            batch_cnt = len(in_data.shape[0])
 
             if torch.cuda.is_available():
                 target = target.cuda()
@@ -163,6 +164,8 @@ class Trainer(object):
 
                 fore = self.gauss_filter(foreground)
                 back = self.gauss_filter(background)
+                self.writer.add_scalar('train/avg_fore', foreground.sum().item()/batch_cnt, self.i_acc + i + 1)
+                self.writer.add_scalar('train/avg_back', background.sum().item()/batch_cnt, self.i_acc + i + 1)
                 clicks = torch.cat((fore, back), dim=1)
                 clicks /= clicks.max()
 
@@ -252,15 +255,16 @@ class Trainer(object):
             self.i_acc += len(self.train_loader)
 
             # evaluation
-            with torch.no_grad():
-                val_loss, val_dice = self.evaluate(epoch)
-                self.writer.add_scalar('val/val_loss', val_loss, self.i_acc)
-                self.writer.add_scalar('val/val_dice', val_dice, self.i_acc)
+            if epoch % 5 == 4:
+                with torch.no_grad():
+                    val_loss, val_dice = self.evaluate(epoch)
+                    self.writer.add_scalar('val/val_loss', val_loss, self.i_acc)
+                    self.writer.add_scalar('val/val_dice', val_dice, self.i_acc)
+
+                if 1 - val_dice > self.best_dice:
+                    self.best_dice = 1 - val_dice
 
             # save model
-            if 1 - val_dice > self.best_dice:
-                self.best_dice = 1 - val_dice
-
             self.model.save(self.log_dir, epoch)
 
     def evaluate(self, epoch):
