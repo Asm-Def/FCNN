@@ -10,6 +10,7 @@ from tensorboardX import SummaryWriter
 import cv2 as cv
 import threading
 
+
 class MyThread(threading.Thread):
     def __init__(self, func, cur_batch, cur_img):
         threading.Thread.__init__(self)
@@ -31,12 +32,12 @@ class Trainer(object):
         self.log_dir = log_dir
         self.best_dice = .0
         self.i_acc = 0
-        self.threshold = .5
+        self.threshold = .6
         self.gauss = torch.empty((5, 5), dtype=torch.float32)
         for i in range(5):
             for j in range(5):
                 t = (i-2)**2 + (j-2)**2
-                self.gauss[i,j] = math.exp(- t / 8) / 8 / math.pi
+                self.gauss[i,j] = math.exp(- t / 8) / (8 * math.pi)
 
         mix = torch.ones((5, 5), dtype=torch.float32)
         self.mix_conv = nn.Conv2d(1, 1, 5, padding=2, bias=False)
@@ -58,27 +59,36 @@ class Trainer(object):
         :param predict: tensor(x, y), dtype=torch.float32
         :return: (-1/0/1, x, y)
         '''
-        graph = target - (predict > self.threshold).to(dtype=torch.int)
+        # graph = target - (predict > self.threshold).to(dtype=torch.int)
+        graph = target - (predict > 0.5).to(dtype=torch.int)
         if graph.min() == 0 and graph.max() == 0:
             return 0, 0, 0
         foreground = (graph == 1).to(dtype=torch.float32)  # 需点击的部分为1
         background = (graph == -1).to(dtype=torch.float32)  # 需点击的部分为1
         row, col = target.shape[0], target.shape[1]
+        sz = row * col
 
-        if foreground.sum() > background.sum():  # foreground的1更多
-            res = 1
-            dis = foreground
-        else:
-            res = -1
-            dis = background
+        # if foreground.sum() > background.sum():  # foreground的1更多
+        #     res = 1
+        #     dis = foreground
+        # else:
+        #     res = -1
+        #     dis = background
 
-        dis.unsqueeze_(0)
-        dis.unsqueeze_(0)
-        dis = torch.min(self.gauss_filter(self.gauss_filter(dis)), dis)
-        xy = torch.multinomial(dis.view((-1,)), 1)[0]
+        def mix_dis(dis):
+            dis.unsqueeze_(0)
+            dis.unsqueeze_(0)
+            dis = torch.min(self.gauss_filter(self.gauss_filter(dis)), dis)
+            return dis
+
+        values = torch.stack((mix_dis(foreground), mix_dis(background)), 0).view((-1,))
+        xy = torch.multinomial(values, 1)[0]
+        t = int(xy < sz)
+        xy -= (1-t) * sz
         x = xy / col
         y = xy - col * x
-        return res, x, y
+        t = (t << 1) - 1
+        return t, x, y
 
     @staticmethod
     def loss(target: torch.Tensor, predict: torch.Tensor):
@@ -254,7 +264,6 @@ class Trainer(object):
             self.model.save(self.log_dir, epoch)
 
     def evaluate(self, epoch):
-        self.model.eval()
         tot_data = 0
         with torch.no_grad():
             loss, dice = self.Iterate(epoch, self.val_loader, False, 'val')
@@ -264,7 +273,5 @@ class Trainer(object):
 
         print('val loss: ', loss)
         print('val dice: ', dice)
-
-        self.model.train()
 
         return loss, dice
