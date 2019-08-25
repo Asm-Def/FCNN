@@ -102,11 +102,13 @@ def wrap_image():  # 将预测结果拼接成用来显示的图像
     assert not image is None
     img = ((image + 1) * (255 / 2)).astype(np.uint8)
     area = (predict * 255).astype(np.uint8)
-    fore = fore_image.reshape(img.shape).cpu().numpy()
-    back = back_image.reshape(img.shape).cpu().numpy()
+    if fore_image is None:
+        fore = fore_image.reshape(img.shape).cpu().numpy()
+        back = back_image.reshape(img.shape).cpu().numpy()
+    else:
+        fore = back = np.zeros_like(area)
 
     img = np.stack((img, img, img), 2)
-    # zeros = np.zeros_like(area)
     area = np.stack((area, fore, back), 2)
     print(img.dtype, area.dtype)
     img = cv.cvtColor(cv.addWeighted(img, 0.7, area, 0.3, 0.0), cv.COLOR_RGB2BGR)
