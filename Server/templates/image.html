@@ -15,6 +15,7 @@
 <script type="text/javascript">
 var fore_clicks=Array()
 var back_clicks=Array()
+var pred = document.getElementById("predict-img");
 function mod_channel(ch_id)
 {
     console.log("mod_channel")
@@ -59,8 +60,6 @@ function get_pred()
     req.send(postStr);
 }
 
-get_pred();
-var pred = document.getElementById("predict-img");
 document.oncontextmenu=function(){
      return false;
 };
@@ -71,6 +70,7 @@ document.onselectstart=function(){
     return false;
 };
 pred.addEventListener('mousedown', do_click);
+get_pred();
 
 function do_click(e){
     console.log(e.offsetX, e.offsetY);
