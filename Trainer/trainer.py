@@ -114,7 +114,7 @@ class Trainer(object):
             in_data = data[1].unsqueeze(1)  # (batch, 1, x, y)
             foreground = torch.zeros_like(in_data)
             background = torch.zeros_like(in_data)
-            batch_cnt = len(in_data.shape[0])
+            batch_cnt = in_data.shape[0]
 
             if torch.cuda.is_available():
                 target = target.cuda()
