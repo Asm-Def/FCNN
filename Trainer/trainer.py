@@ -60,7 +60,7 @@ class Trainer(object):
         :return: (-1/0/1, x, y)
         '''
         # graph = target - (predict > self.threshold).to(dtype=torch.int)
-        graph = target - (predict > 0.5).to(dtype=torch.int)
+        graph = target - (predict > 0.4).to(dtype=torch.int)
         if graph.min() == 0 and graph.max() == 0:
             return 0, 0, 0
         foreground = (graph == 1).to(dtype=torch.float32)  # 需点击的部分为1
@@ -134,18 +134,18 @@ class Trainer(object):
 
                 threads = []
 
-                for batch in range(in_data.shape[0]):
+                for batch in range(batch_cnt):
                     t = MyThread(do_clicks, batch, tmp)
                     threads.append(t)
                     t.start()
 
-                for batch in range(in_data.shape[0]):
+                for batch in range(batch_cnt):
                     threads[batch].join()
 
                 for it in range(1, self.max_iter):
-                    prob = it / self.max_iter * 0.9
-                    if random.random() < prob:  # 结束迭代
-                        break
+                    prob = it / self.max_iter * 0.7
+                    if random.random() < prob:  # 不进行本次迭代
+                        continue
 
                     fore = self.gauss_filter(foreground)
                     back = self.gauss_filter(background)
@@ -155,11 +155,11 @@ class Trainer(object):
                         torch.cat((in_data, clicks), dim=1)
                     )  # (batch, 1, x, y)
 
-                    for batch in range(in_data.shape[0]):
+                    for batch in range(batch_cnt):
                         threads[batch] = MyThread(do_clicks, batch, out_data[batch, 0])
                         threads[batch].start()
 
-                    for batch in range(in_data.shape[0]):
+                    for batch in range(batch_cnt):
                         threads[batch].join()
 
                 fore = self.gauss_filter(foreground)
